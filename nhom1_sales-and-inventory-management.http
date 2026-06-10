@@ -1,0 +1,6 @@
+@nhom1_sales_and_inventory_management_HostAddress = http://localhost:5296
+
+GET {{nhom1_sales_and_inventory_management_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
