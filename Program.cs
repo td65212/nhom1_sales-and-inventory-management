@@ -16,7 +16,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 var app = builder.Build();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 app.UseSwagger();
 app.UseSwaggerUI();
