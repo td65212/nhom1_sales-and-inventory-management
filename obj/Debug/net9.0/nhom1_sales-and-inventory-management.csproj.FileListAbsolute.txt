@@ -165,3 +165,4 @@ C:\Users\cuong\nhom1_sales-and-inventory-management\obj\Debug\net9.0\refint\nhom
 C:\Users\cuong\nhom1_sales-and-inventory-management\obj\Debug\net9.0\nhom1_sales-and-inventory-management.pdb
 C:\Users\cuong\nhom1_sales-and-inventory-management\obj\Debug\net9.0\nhom1_sales-and-inventory-management.genruntimeconfig.cache
 C:\Users\cuong\nhom1_sales-and-inventory-management\obj\Debug\net9.0\ref\nhom1_sales-and-inventory-management.dll
+C:\Users\cuong\nhom1_sales-and-inventory-management\obj\Debug\net9.0\nhom1_sales-and-inventory-management.sourcelink.json
