@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("nhom1-sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e7bb9a084c7e0e1d252f91684362ced2c9ee7a3f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d741491cc2b1a569f87f5f3d141872fae271f6c9")]
 [assembly: System.Reflection.AssemblyProductAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyTitleAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

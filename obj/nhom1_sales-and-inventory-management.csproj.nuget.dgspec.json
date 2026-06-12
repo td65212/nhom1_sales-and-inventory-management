@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\cuong\\nhom1_sales-and-inventory-management\\nhom1_sales-and-inventory-management.csproj": {}
+    "/Users/minhquan/Documents/nhom1_sales-and-inventory-management/nhom1_sales-and-inventory-management.csproj": {}
   },
   "projects": {
-    "C:\\Users\\cuong\\nhom1_sales-and-inventory-management\\nhom1_sales-and-inventory-management.csproj": {
+    "/Users/minhquan/Documents/nhom1_sales-and-inventory-management/nhom1_sales-and-inventory-management.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\cuong\\nhom1_sales-and-inventory-management\\nhom1_sales-and-inventory-management.csproj",
+        "projectUniqueName": "/Users/minhquan/Documents/nhom1_sales-and-inventory-management/nhom1_sales-and-inventory-management.csproj",
         "projectName": "nhom1_sales-and-inventory-management",
-        "projectPath": "C:\\Users\\cuong\\nhom1_sales-and-inventory-management\\nhom1_sales-and-inventory-management.csproj",
-        "packagesPath": "C:\\Users\\cuong\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\cuong\\nhom1_sales-and-inventory-management\\obj\\",
+        "projectPath": "/Users/minhquan/Documents/nhom1_sales-and-inventory-management/nhom1_sales-and-inventory-management.csproj",
+        "packagesPath": "/Users/minhquan/.nuget/packages/",
+        "outputPath": "/Users/minhquan/Documents/nhom1_sales-and-inventory-management/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\cuong\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/Users/minhquan/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -37,28 +37,31 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.200"
+        }
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[8.0.27, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.0, )"
             },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "Microsoft.EntityFrameworkCore.SqlServer": {
-              "target": "Package",
-              "version": "[8.0.0, )"
+              "version": "[8.0.4, )"
             },
             "Microsoft.EntityFrameworkCore.Tools": {
               "target": "Package",
-              "version": "[8.0.0, )"
+              "version": "[8.0.4, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.4, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -76,24 +79,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.17, 8.0.17]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Host.win-x64",
-              "version": "[8.0.17, 8.0.17]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.17, 8.0.17]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.17, 8.0.17]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -102,7 +87,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.205/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.421/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

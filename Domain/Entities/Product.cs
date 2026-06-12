@@ -19,4 +19,7 @@ public class Product
     public Category Category { get; set; } = null!;
 
     public Inventory Inventory { get; set; } = null!;
+
+    public ICollection<StockReceiptItem> StockReceiptItems { get; set; }
+        = new List<StockReceiptItem>();
 }

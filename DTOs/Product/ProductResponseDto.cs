@@ -8,7 +8,13 @@ public class ProductResponseDto
 
     public string Name { get; set; } = string.Empty;
 
+    public decimal ImportPrice { get; set; }
+
     public decimal SellingPrice { get; set; }
+
+    public string? ImageUrl { get; set; }
+
+    public int CategoryId { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;
 

@@ -17,6 +17,12 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Inventory> Inventories { get; set; }
 
+    public DbSet<StockReceipt> StockReceipts { get; set; }
+
+    public DbSet<StockReceiptItem> StockReceiptItems { get; set; }
+
+    public DbSet<StockEvent> StockEvents { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -36,5 +42,36 @@ public class ApplicationDbContext : DbContext
             .HasOne(p => p.Inventory)
             .WithOne(i => i.Product)
             .HasForeignKey<Inventory>(i => i.ProductId);
+
+        modelBuilder.Entity<Product>()
+            .Property(product => product.ImportPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Product>()
+            .Property(product => product.SellingPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<StockReceipt>()
+            .HasMany(receipt => receipt.Items)
+            .WithOne(item => item.StockReceipt)
+            .HasForeignKey(item => item.StockReceiptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<StockReceiptItem>()
+            .HasOne(item => item.Product)
+            .WithMany(product => product.StockReceiptItems)
+            .HasForeignKey(item => item.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<StockReceiptItem>()
+            .Property(item => item.ImportPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<StockEvent>()
+            .HasIndex(stockEvent => stockEvent.EventId)
+            .IsUnique();
+
+        modelBuilder.Entity<StockEvent>()
+            .HasIndex(stockEvent => stockEvent.OccurredAt);
     }
 }
