@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Npgsql;
 using nhom1_sales_and_inventory_management.Infrastructure.Data;
 using nhom1_sales_and_inventory_management.Services;
 
@@ -39,8 +40,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing");
+var connectionString = GetDatabaseConnectionString(builder.Configuration);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -109,3 +109,55 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+static string GetDatabaseConnectionString(IConfiguration configuration)
+{
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+    var databaseUrl = configuration["DATABASE_URL"];
+
+    if (!string.IsNullOrWhiteSpace(databaseUrl))
+        connectionString = ConvertDatabaseUrl(databaseUrl);
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Database connection is missing. Configure DATABASE_URL or "
+            + "ConnectionStrings__DefaultConnection.");
+    }
+
+    if (!connectionString.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+        && !connectionString.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+    {
+        return connectionString;
+    }
+
+    if (configuration["ASPNETCORE_ENVIRONMENT"] == Environments.Development)
+        return connectionString;
+
+    throw new InvalidOperationException(
+        "Production database cannot use localhost. Configure DATABASE_URL or "
+        + "ConnectionStrings__DefaultConnection on Render.");
+}
+
+static string ConvertDatabaseUrl(string databaseUrl)
+{
+    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri)
+        || (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
+    {
+        return databaseUrl;
+    }
+
+    var credentials = uri.UserInfo.Split(':', 2);
+    if (credentials.Length != 2)
+        throw new InvalidOperationException("DATABASE_URL credentials are invalid.");
+
+    return new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = Uri.UnescapeDataString(credentials[1]),
+        SslMode = SslMode.Require
+    }.ConnectionString;
+}
