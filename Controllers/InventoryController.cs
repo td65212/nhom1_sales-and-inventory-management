@@ -209,7 +209,6 @@ public class InventoryController : ControllerBase
             .Select(product => new ProductStockDto
             {
                 Id = product.Id,
-                ProductCode = product.ProductCode,
                 Name = product.Name,
                 SellingPrice = product.SellingPrice,
                 CategoryName = product.Category.Name,

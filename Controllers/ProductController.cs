@@ -29,7 +29,6 @@ public class ProductController : ControllerBase
             .Select(p => new ProductResponseDto
             {
                 Id = p.Id,
-                ProductCode = p.ProductCode,
                 Name = p.Name,
                 ImportPrice = p.ImportPrice,
                 SellingPrice = p.SellingPrice,
@@ -59,7 +58,6 @@ public class ProductController : ControllerBase
         return Ok(new ProductResponseDto
         {
             Id = p.Id,
-            ProductCode = p.ProductCode,
             Name = p.Name,
             ImportPrice = p.ImportPrice,
             SellingPrice = p.SellingPrice,
@@ -75,8 +73,7 @@ public class ProductController : ControllerBase
     [Authorize(Roles = "Admin,WarehouseKeeper")]
     public async Task<IActionResult> Create(CreateProductDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.ProductCode)
-            || string.IsNullOrWhiteSpace(dto.Name)
+        if (string.IsNullOrWhiteSpace(dto.Name)
             || dto.ImportPrice < 0
             || dto.SellingPrice < 0
             || dto.Quantity < 0
@@ -88,12 +85,8 @@ public class ProductController : ControllerBase
         if (!await _context.Categories.AnyAsync(category => category.Id == dto.CategoryId))
             return NotFound(new { message = "Không tìm thấy danh mục" });
 
-        if (await _context.Products.AnyAsync(product => product.ProductCode == dto.ProductCode.Trim()))
-            return Conflict(new { message = "Mã sản phẩm đã tồn tại" });
-
         var product = new Product
         {
-            ProductCode = dto.ProductCode.Trim(),
             Name = dto.Name.Trim(),
             ImportPrice = dto.ImportPrice,
             SellingPrice = dto.SellingPrice,
@@ -150,14 +143,7 @@ public class ProductController : ControllerBase
             return BadRequest(new { message = "Dữ liệu sản phẩm không hợp lệ" });
         }
 
-        if (await _context.Products.AnyAsync(value =>
-            value.ProductCode == dto.ProductCode.Trim() && value.Id != id))
-        {
-            return Conflict(new { message = "Mã sản phẩm đã tồn tại" });
-        }
-
         var previousQuantity = product.Inventory.Quantity;
-        product.ProductCode = dto.ProductCode.Trim();
         product.Name = dto.Name.Trim();
         product.ImportPrice = dto.ImportPrice;
         product.SellingPrice = dto.SellingPrice;
@@ -210,7 +196,6 @@ public class ProductController : ControllerBase
             .Select(product => new ProductResponseDto
             {
                 Id = product.Id,
-                ProductCode = product.ProductCode,
                 Name = product.Name,
                 ImportPrice = product.ImportPrice,
                 SellingPrice = product.SellingPrice,

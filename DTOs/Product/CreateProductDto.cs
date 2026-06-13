@@ -2,8 +2,6 @@ namespace nhom1_sales_and_inventory_management.DTOs.Product;
 
 public class CreateProductDto
 {
-    public string ProductCode { get; set; } = string.Empty;
-
     public string Name { get; set; } = string.Empty;
 
     public decimal ImportPrice { get; set; }

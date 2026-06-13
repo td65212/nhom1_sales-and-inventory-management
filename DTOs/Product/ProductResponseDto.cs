@@ -4,8 +4,6 @@ public class ProductResponseDto
 {
     public int Id { get; set; }
 
-    public string ProductCode { get; set; } = string.Empty;
-
     public string Name { get; set; } = string.Empty;
 
     public decimal ImportPrice { get; set; }

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3db5cbce4f5143963485c80ed1332f987523be35")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f36a647d6378cab7143cd6d23a51895ce25b7f80")]
 [assembly: System.Reflection.AssemblyProductAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyTitleAttribute("nhom1_sales-and-inventory-management")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
