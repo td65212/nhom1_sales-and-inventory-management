@@ -39,6 +39,9 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(p => p.CategoryId);
 
         modelBuilder.Entity<Product>()
+            .HasIndex(product => product.SupplierId);
+
+        modelBuilder.Entity<Product>()
             .HasOne(p => p.Inventory)
             .WithOne(i => i.Product)
             .HasForeignKey<Inventory>(i => i.ProductId);

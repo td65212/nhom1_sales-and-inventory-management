@@ -35,4 +35,17 @@ public class SupplierClient : ISupplierClient
         var wrapped = JsonSerializer.Deserialize<ApiResponse<SupplierDto>>(content, JsonOptions);
         return wrapped?.Data;
     }
+
+    public async Task<IReadOnlyDictionary<int, SupplierDto>> GetByIdsAsync(IEnumerable<int> ids)
+    {
+        var suppliers = new Dictionary<int, SupplierDto>();
+        foreach (var id in ids.Distinct())
+        {
+            var supplier = await GetByIdAsync(id);
+            if (supplier is not null)
+                suppliers[id] = supplier;
+        }
+
+        return suppliers;
+    }
 }

@@ -12,6 +12,8 @@ public class CreateProductDto
 
     public int CategoryId { get; set; }
 
+    public int SupplierId { get; set; }
+
     public int Quantity { get; set; }
 
     public int ReserveStock { get; set; }

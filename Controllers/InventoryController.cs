@@ -201,6 +201,20 @@ public class InventoryController : ControllerBase
         });
     }
 
+    [HttpGet("/api/internal/products/has-supplier/{supplierId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HasSupplierProducts(int supplierId)
+    {
+        if (!HasValidInternalApiKey())
+            return Unauthorized(new { message = "Internal API key khong hop le" });
+
+        return Ok(new
+        {
+            hasProducts = await _context.Products
+                .AnyAsync(product => product.SupplierId == supplierId)
+        });
+    }
+
     private async Task<ProductStockDto> LoadProductStockAsync(int productId)
     {
         return await _context.Products

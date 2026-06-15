@@ -16,6 +16,10 @@ public class ProductResponseDto
 
     public string CategoryName { get; set; } = string.Empty;
 
+    public int SupplierId { get; set; }
+
+    public string SupplierName { get; set; } = string.Empty;
+
     public int Quantity { get; set; }
 
     public int ReserveStock { get; set; }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using nhom1_sales_and_inventory_management.Domain.Entities;
 using nhom1_sales_and_inventory_management.DTOs.Product;
 using nhom1_sales_and_inventory_management.Infrastructure.Data;
+using nhom1_sales_and_inventory_management.Services;
 
 namespace nhom1_sales_and_inventory_management.Controllers;
 
@@ -13,10 +14,12 @@ namespace nhom1_sales_and_inventory_management.Controllers;
 public class ProductController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ISupplierClient _supplierClient;
 
-    public ProductController(ApplicationDbContext context)
+    public ProductController(ApplicationDbContext context, ISupplierClient supplierClient)
     {
         _context = context;
+        _supplierClient = supplierClient;
     }
 
     [HttpGet]
@@ -24,66 +27,37 @@ public class ProductController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var products = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Inventory)
-            .Select(p => new ProductResponseDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                ImportPrice = p.ImportPrice,
-                SellingPrice = p.SellingPrice,
-                ImageUrl = p.ImageUrl,
-                CategoryId = p.CategoryId,
-                Quantity = p.Inventory.Quantity,
-                ReserveStock = p.Inventory.ReserveStock,
-                CategoryName = p.Category.Name
-            })
+            .AsNoTracking()
+            .Include(product => product.Category)
+            .Include(product => product.Inventory)
             .ToListAsync();
+        var suppliers = await _supplierClient.GetByIdsAsync(
+            products.Select(product => product.SupplierId));
 
-        return Ok(products);
+        return Ok(products.Select(product =>
+            Map(product, suppliers.GetValueOrDefault(product.SupplierId)?.Name)));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetById(int id)
     {
-        var p = await _context.Products
-            .Include(x => x.Category)
-            .Include(x => x.Inventory)
-            .FirstOrDefaultAsync(x => x.Id == id);
-
-        if (p == null)
+        var product = await LoadProductAsync(id);
+        if (product is null)
             return NotFound();
 
-        return Ok(new ProductResponseDto
-        {
-            Id = p.Id,
-            Name = p.Name,
-            ImportPrice = p.ImportPrice,
-            SellingPrice = p.SellingPrice,
-            ImageUrl = p.ImageUrl,
-            CategoryId = p.CategoryId,
-            Quantity = p.Inventory.Quantity,
-            ReserveStock = p.Inventory.ReserveStock,
-            CategoryName = p.Category.Name
-        });
+        var supplier = await _supplierClient.GetByIdAsync(product.SupplierId);
+        return Ok(Map(product, supplier?.Name));
     }
 
     [HttpPost]
     [Authorize(Roles = "Admin,WarehouseKeeper")]
     public async Task<IActionResult> Create(CreateProductDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name)
-            || dto.ImportPrice < 0
-            || dto.SellingPrice < 0
-            || dto.Quantity < 0
-            || dto.ReserveStock < 0)
-        {
-            return BadRequest(new { message = "Dữ liệu sản phẩm không hợp lệ" });
-        }
-
-        if (!await _context.Categories.AnyAsync(category => category.Id == dto.CategoryId))
-            return NotFound(new { message = "Không tìm thấy danh mục" });
+        var validationResult = await ValidateAsync(dto.Name, dto.ImportPrice, dto.SellingPrice,
+            dto.CategoryId, dto.SupplierId, dto.Quantity, dto.ReserveStock);
+        if (validationResult.Error is not null)
+            return validationResult.Error;
 
         var product = new Product
         {
@@ -92,6 +66,7 @@ public class ProductController : ControllerBase
             SellingPrice = dto.SellingPrice,
             ImageUrl = dto.ImageUrl,
             CategoryId = dto.CategoryId,
+            SupplierId = validationResult.Supplier!.Id,
             Inventory = new Inventory
             {
                 Quantity = dto.Quantity,
@@ -101,47 +76,30 @@ public class ProductController : ControllerBase
 
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        _context.StockEvents.Add(new StockEvent
-        {
-            ProductId = product.Id,
-            ProductName = product.Name,
-            PreviousQuantity = 0,
-            CurrentQuantity = product.Inventory.Quantity,
-            QuantityChange = product.Inventory.Quantity,
-            Source = "product.created",
-            ReferenceId = product.Id.ToString()
-        });
+        AddStockEvent(product, 0, product.Inventory.Quantity, "product.created");
         await _context.SaveChangesAsync();
 
-        var response = await GetResponseAsync(product.Id);
-        return CreatedAtAction(nameof(GetById),
-            new { id = product.Id },
-            response);
+        return CreatedAtAction(nameof(GetById), new { id = product.Id },
+            Map((await LoadProductAsync(product.Id))!, validationResult.Supplier.Name));
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin,WarehouseKeeper")]
-    public async Task<IActionResult> Update(
-        int id,
-        UpdateProductDto dto)
+    public async Task<IActionResult> Update(int id, UpdateProductDto dto)
     {
         if (id != dto.Id)
-            return BadRequest();
+            return BadRequest(new { message = "ID khong khop" });
 
         var product = await _context.Products
-            .Include(x => x.Inventory)
-            .FirstOrDefaultAsync(x => x.Id == id);
-
-        if (product == null)
+            .Include(value => value.Inventory)
+            .FirstOrDefaultAsync(value => value.Id == id);
+        if (product is null)
             return NotFound();
 
-        if (dto.ImportPrice < 0
-            || dto.SellingPrice < 0
-            || dto.Quantity < 0
-            || dto.ReserveStock < 0)
-        {
-            return BadRequest(new { message = "Dữ liệu sản phẩm không hợp lệ" });
-        }
+        var validationResult = await ValidateAsync(dto.Name, dto.ImportPrice, dto.SellingPrice,
+            dto.CategoryId, dto.SupplierId, dto.Quantity, dto.ReserveStock);
+        if (validationResult.Error is not null)
+            return validationResult.Error;
 
         var previousQuantity = product.Inventory.Quantity;
         product.Name = dto.Name.Trim();
@@ -149,62 +107,88 @@ public class ProductController : ControllerBase
         product.SellingPrice = dto.SellingPrice;
         product.ImageUrl = dto.ImageUrl;
         product.CategoryId = dto.CategoryId;
-
+        product.SupplierId = validationResult.Supplier!.Id;
         product.Inventory.Quantity = dto.Quantity;
         product.Inventory.ReserveStock = dto.ReserveStock;
 
         if (previousQuantity != product.Inventory.Quantity)
-        {
-            _context.StockEvents.Add(new StockEvent
-            {
-                ProductId = product.Id,
-                ProductName = product.Name,
-                PreviousQuantity = previousQuantity,
-                CurrentQuantity = product.Inventory.Quantity,
-                QuantityChange = product.Inventory.Quantity - previousQuantity,
-                Source = "product.updated",
-                ReferenceId = product.Id.ToString()
-            });
-        }
+            AddStockEvent(product, previousQuantity, product.Inventory.Quantity, "product.updated");
 
         await _context.SaveChangesAsync();
-
-        return Ok(await GetResponseAsync(product.Id));
+        return Ok(Map((await LoadProductAsync(product.Id))!, validationResult.Supplier.Name));
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _context.Products.FindAsync(id);
-
-        if (product == null)
+        if (product is null)
             return NotFound();
 
         _context.Products.Remove(product);
-
         await _context.SaveChangesAsync();
-
         return Ok();
     }
 
-    private Task<ProductResponseDto> GetResponseAsync(int id)
+    private async Task<(DTOs.Integration.SupplierDto? Supplier, IActionResult? Error)> ValidateAsync(
+        string name, decimal importPrice, decimal sellingPrice, int categoryId,
+        int supplierId, int quantity, int reserveStock)
+    {
+        if (string.IsNullOrWhiteSpace(name) || importPrice < 0 || sellingPrice < 0
+            || categoryId <= 0 || supplierId <= 0 || quantity < 0 || reserveStock < 0)
+        {
+            return (null, BadRequest(new { message = "Du lieu san pham khong hop le" }));
+        }
+
+        if (!await _context.Categories.AnyAsync(category => category.Id == categoryId))
+            return (null, NotFound(new { message = "Khong tim thay danh muc" }));
+
+        var supplier = await _supplierClient.GetByIdAsync(supplierId);
+        return supplier is null
+            ? (null, NotFound(new { message = "Khong tim thay nha cung cap" }))
+            : (supplier, null);
+    }
+
+    private Task<Product?> LoadProductAsync(int id)
     {
         return _context.Products
             .AsNoTracking()
-            .Where(product => product.Id == id)
-            .Select(product => new ProductResponseDto
-            {
-                Id = product.Id,
-                Name = product.Name,
-                ImportPrice = product.ImportPrice,
-                SellingPrice = product.SellingPrice,
-                ImageUrl = product.ImageUrl,
-                CategoryId = product.CategoryId,
-                CategoryName = product.Category.Name,
-                Quantity = product.Inventory.Quantity,
-                ReserveStock = product.Inventory.ReserveStock
-            })
-            .SingleAsync();
+            .Include(product => product.Category)
+            .Include(product => product.Inventory)
+            .FirstOrDefaultAsync(product => product.Id == id);
+    }
+
+    private void AddStockEvent(
+        Product product, int previousQuantity, int currentQuantity, string source)
+    {
+        _context.StockEvents.Add(new StockEvent
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            PreviousQuantity = previousQuantity,
+            CurrentQuantity = currentQuantity,
+            QuantityChange = currentQuantity - previousQuantity,
+            Source = source,
+            ReferenceId = product.Id.ToString()
+        });
+    }
+
+    private static ProductResponseDto Map(Product product, string? supplierName)
+    {
+        return new ProductResponseDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            ImportPrice = product.ImportPrice,
+            SellingPrice = product.SellingPrice,
+            ImageUrl = product.ImageUrl,
+            CategoryId = product.CategoryId,
+            CategoryName = product.Category.Name,
+            SupplierId = product.SupplierId,
+            SupplierName = supplierName ?? string.Empty,
+            Quantity = product.Inventory.Quantity,
+            ReserveStock = product.Inventory.ReserveStock
+        };
     }
 }

@@ -5,4 +5,5 @@ namespace nhom1_sales_and_inventory_management.Services;
 public interface ISupplierClient
 {
     Task<SupplierDto?> GetByIdAsync(int id);
+    Task<IReadOnlyDictionary<int, SupplierDto>> GetByIdsAsync(IEnumerable<int> ids);
 }

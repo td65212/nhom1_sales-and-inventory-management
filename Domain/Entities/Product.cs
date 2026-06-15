@@ -16,6 +16,8 @@ public class Product
 
     public Category Category { get; set; } = null!;
 
+    public int SupplierId { get; set; }
+
     public Inventory Inventory { get; set; } = null!;
 
     public ICollection<StockReceiptItem> StockReceiptItems { get; set; }
