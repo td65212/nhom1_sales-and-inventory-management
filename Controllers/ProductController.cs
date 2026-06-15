@@ -30,6 +30,7 @@ public class ProductController : ControllerBase
             .AsNoTracking()
             .Include(product => product.Category)
             .Include(product => product.Inventory)
+            .OrderBy(product => product.Id)
             .ToListAsync();
         var suppliers = await _supplierClient.GetByIdsAsync(
             products.Select(product => product.SupplierId));
