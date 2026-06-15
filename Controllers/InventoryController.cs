@@ -126,6 +126,10 @@ public class InventoryController : ControllerBase
         if (dto.ProductId <= 0 || dto.Quantity <= 0)
             return BadRequest(new { message = "ProductId và số lượng phải lớn hơn 0" });
 
+        var duplicate = await GetIdempotentResultAsync(dto, "order.reserved");
+        if (duplicate is not null)
+            return Ok(duplicate);
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
         var affected = await _context.Inventories
             .Where(inventory => inventory.ProductId == dto.ProductId
@@ -171,6 +175,10 @@ public class InventoryController : ControllerBase
 
         if (dto.ProductId <= 0 || dto.Quantity <= 0)
             return BadRequest(new { message = "ProductId và số lượng phải lớn hơn 0" });
+
+        var duplicate = await GetIdempotentResultAsync(dto, "order.released");
+        if (duplicate is not null)
+            return Ok(duplicate);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         var affected = await _context.Inventories
@@ -230,6 +238,30 @@ public class InventoryController : ControllerBase
                 ReserveStock = product.Inventory.ReserveStock
             })
             .SingleAsync();
+    }
+
+    private async Task<AdjustStockResponseDto?> GetIdempotentResultAsync(
+        AdjustStockDto dto,
+        string source)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ReferenceId))
+            return null;
+
+        var stockEvent = await _context.StockEvents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(value =>
+                value.ProductId == dto.ProductId
+                && value.Source == source
+                && value.ReferenceId == dto.ReferenceId);
+        if (stockEvent is null)
+            return null;
+
+        return new AdjustStockResponseDto
+        {
+            Product = await LoadProductStockAsync(dto.ProductId),
+            PreviousQuantity = stockEvent.PreviousQuantity,
+            CurrentQuantity = stockEvent.CurrentQuantity
+        };
     }
 
     private void AddStockEvent(

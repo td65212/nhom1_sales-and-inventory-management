@@ -76,5 +76,15 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<StockEvent>()
             .HasIndex(stockEvent => stockEvent.OccurredAt);
+
+        modelBuilder.Entity<StockEvent>()
+            .HasIndex(stockEvent => new
+            {
+                stockEvent.ProductId,
+                stockEvent.Source,
+                stockEvent.ReferenceId
+            })
+            .IsUnique()
+            .HasFilter("\"ReferenceId\" IS NOT NULL");
     }
 }

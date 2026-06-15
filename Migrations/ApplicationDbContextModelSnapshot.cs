@@ -95,9 +95,14 @@ namespace nhom1_salesandinventorymanagement.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("Products");
                 });
@@ -149,6 +154,10 @@ namespace nhom1_salesandinventorymanagement.Migrations
                         .IsUnique();
 
                     b.HasIndex("OccurredAt");
+
+                    b.HasIndex("ProductId", "Source", "ReferenceId")
+                        .IsUnique()
+                        .HasFilter("\"ReferenceId\" IS NOT NULL");
 
                     b.ToTable("StockEvents");
                 });
