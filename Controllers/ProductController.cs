@@ -64,7 +64,9 @@ public class ProductController : ControllerBase
         {
             Name = dto.Name.Trim(),
             ImportPrice = dto.ImportPrice,
-            SellingPrice = dto.SellingPrice,
+            OriginalPrice = dto.OriginalPrice ?? dto.SellingPrice,
+            SalePrice = NormalizeSalePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
+            SellingPrice = GetEffectivePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             ImageUrl = dto.ImageUrl,
             CategoryId = dto.CategoryId,
             SupplierId = validationResult.Supplier!.Id,
@@ -105,7 +107,9 @@ public class ProductController : ControllerBase
         var previousQuantity = product.Inventory.Quantity;
         product.Name = dto.Name.Trim();
         product.ImportPrice = dto.ImportPrice;
-        product.SellingPrice = dto.SellingPrice;
+        product.OriginalPrice = dto.OriginalPrice ?? dto.SellingPrice;
+        product.SalePrice = NormalizeSalePrice(product.OriginalPrice, dto.SalePrice);
+        product.SellingPrice = GetEffectivePrice(product.OriginalPrice, product.SalePrice);
         product.ImageUrl = dto.ImageUrl;
         product.CategoryId = dto.CategoryId;
         product.SupplierId = validationResult.Supplier!.Id;
@@ -177,12 +181,16 @@ public class ProductController : ControllerBase
 
     private static ProductResponseDto Map(Product product, string? supplierName)
     {
+        var originalPrice = product.OriginalPrice > 0 ? product.OriginalPrice : product.SellingPrice;
+        var salePrice = NormalizeSalePrice(originalPrice, product.SalePrice);
         return new ProductResponseDto
         {
             Id = product.Id,
             Name = product.Name,
             ImportPrice = product.ImportPrice,
-            SellingPrice = product.SellingPrice,
+            SellingPrice = GetEffectivePrice(originalPrice, salePrice),
+            OriginalPrice = originalPrice,
+            SalePrice = salePrice,
             ImageUrl = product.ImageUrl,
             CategoryId = product.CategoryId,
             CategoryName = product.Category.Name,
@@ -191,5 +199,17 @@ public class ProductController : ControllerBase
             Quantity = product.Inventory.Quantity,
             ReserveStock = product.Inventory.ReserveStock
         };
+    }
+
+    private static decimal? NormalizeSalePrice(decimal originalPrice, decimal? salePrice)
+    {
+        return salePrice.HasValue && salePrice.Value > 0 && salePrice.Value < originalPrice
+            ? salePrice.Value
+            : null;
+    }
+
+    private static decimal GetEffectivePrice(decimal originalPrice, decimal? salePrice)
+    {
+        return NormalizeSalePrice(originalPrice, salePrice) ?? originalPrice;
     }
 }

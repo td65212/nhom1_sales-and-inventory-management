@@ -54,6 +54,18 @@ public class ApplicationDbContext : DbContext
             .Property(product => product.SellingPrice)
             .HasPrecision(18, 2);
 
+        modelBuilder.Entity<Product>()
+            .Property(product => product.OriginalPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Product>()
+            .Property(product => product.SalePrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<StockReceipt>()
+            .Property(receipt => receipt.ImportDate)
+            .HasColumnType("date");
+
         modelBuilder.Entity<StockReceipt>()
             .HasMany(receipt => receipt.Items)
             .WithOne(item => item.StockReceipt)

@@ -10,6 +10,10 @@ public class Product
 
     public decimal SellingPrice { get; set; }
 
+    public decimal OriginalPrice { get; set; }
+
+    public decimal? SalePrice { get; set; }
+
     public string? ImageUrl { get; set; }
 
     public int CategoryId { get; set; }
