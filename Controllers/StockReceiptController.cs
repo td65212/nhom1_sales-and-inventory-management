@@ -55,11 +55,11 @@ public class StockReceiptController : ControllerBase
 
         var supplier = await _supplierClient.GetByIdAsync(dto.SupplierId);
         if (supplier is null)
-            return NotFound(new { message = "Khong tim thay nha cung cap" });
+            return NotFound(new { message = "Không tìm thấy nhà cung cấp" });
 
         var createdByUserId = GetCurrentUserId();
         if (createdByUserId is null)
-            return Unauthorized(new { message = "JWT khong chua UserId hop le" });
+            return Unauthorized(new { message = "JWT không chứa UserId hợp lệ" });
 
         var items = dto.Items
             .GroupBy(item => item.ProductId)
@@ -100,7 +100,7 @@ public class StockReceiptController : ControllerBase
         if (receipt is null)
             return NotFound();
         if (receipt.Status != StockReceiptStatus.Draft)
-            return Conflict(new { message = "Chi co the sua phieu Draft" });
+            return Conflict(new { message = "Chỉ có thể sửa phiếu Draft" });
 
         var validationError = await ValidateCreateAsync(dto);
         if (validationError is not null)
@@ -108,7 +108,7 @@ public class StockReceiptController : ControllerBase
 
         var supplier = await _supplierClient.GetByIdAsync(dto.SupplierId);
         if (supplier is null)
-            return NotFound(new { message = "Khong tim thay nha cung cap" });
+            return NotFound(new { message = "Không tìm thấy nhà cung cấp" });
 
         receipt.SupplierId = supplier.Id;
         receipt.SupplierName = supplier.Name;
@@ -142,7 +142,7 @@ public class StockReceiptController : ControllerBase
         if (receipt is null)
             return NotFound();
         if (receipt.Status != StockReceiptStatus.Draft)
-            return Conflict(new { message = "Chi co the gui duyet phieu Draft" });
+            return Conflict(new { message = "Chỉ có thể gửi duyệt phiếu Draft" });
 
         receipt.Status = StockReceiptStatus.PendingApproval;
         receipt.SubmittedAt = DateTime.UtcNow;
@@ -173,11 +173,11 @@ public class StockReceiptController : ControllerBase
             return Ok(Map(receipt));
         }
         if (receipt.Status != StockReceiptStatus.PendingApproval)
-            return Conflict(new { message = "Chi co the duyet phieu PendingApproval" });
+            return Conflict(new { message = "Chỉ có thể duyệt phiếu PendingApproval" });
 
         var approvedByUserId = GetCurrentUserId();
         if (approvedByUserId is null)
-            return Unauthorized(new { message = "JWT khong chua UserId hop le" });
+            return Unauthorized(new { message = "JWT không chứa UserId hợp lệ" });
 
         foreach (var item in receipt.Items)
         {
@@ -219,7 +219,7 @@ public class StockReceiptController : ControllerBase
         if (receipt is null)
             return NotFound();
         if (receipt.Status != StockReceiptStatus.PendingApproval)
-            return Conflict(new { message = "Chi co the tu choi phieu PendingApproval" });
+            return Conflict(new { message = "Chỉ có thể từ chối phiếu PendingApproval" });
 
         receipt.Status = StockReceiptStatus.Rejected;
         receipt.ApprovedAt = DateTime.UtcNow;
@@ -230,11 +230,11 @@ public class StockReceiptController : ControllerBase
     private async Task<IActionResult?> ValidateCreateAsync(CreateStockReceiptDto dto)
     {
         if (dto.SupplierId <= 0)
-            return BadRequest(new { message = "SupplierId phai lon hon 0" });
+            return BadRequest(new { message = "SupplierId phải lớn hơn 0" });
 
         if (dto.Items.Count == 0
             || dto.Items.Any(item => item.ProductId <= 0 || item.Quantity <= 0 || item.ImportPrice < 0))
-            return BadRequest(new { message = "Phieu nhap phai co san pham hop le" });
+            return BadRequest(new { message = "Phiếu nhập phải có sản phẩm hợp lệ" });
 
         var productIds = dto.Items.Select(item => item.ProductId).Distinct().ToList();
         var existingProductIds = await _context.Products
@@ -243,7 +243,7 @@ public class StockReceiptController : ControllerBase
             .ToListAsync();
         return existingProductIds.Count == productIds.Count
             ? null
-            : NotFound(new { message = "Mot hoac nhieu san pham khong ton tai" });
+            : NotFound(new { message = "Một hoặc nhiều sản phẩm không tồn tại" });
     }
 
     private int? GetCurrentUserId()

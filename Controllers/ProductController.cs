@@ -91,7 +91,7 @@ public class ProductController : ControllerBase
     public async Task<IActionResult> Update(int id, UpdateProductDto dto)
     {
         if (id != dto.Id)
-            return BadRequest(new { message = "ID khong khop" });
+            return BadRequest(new { message = "ID không khớp" });
 
         var product = await _context.Products
             .Include(value => value.Inventory)
@@ -143,15 +143,15 @@ public class ProductController : ControllerBase
         if (string.IsNullOrWhiteSpace(name) || importPrice < 0 || sellingPrice < 0
             || categoryId <= 0 || supplierId <= 0 || quantity < 0 || reserveStock < 0)
         {
-            return (null, BadRequest(new { message = "Du lieu san pham khong hop le" }));
+            return (null, BadRequest(new { message = "Dữ liệu sản phẩm không hợp lệ" }));
         }
 
         if (!await _context.Categories.AnyAsync(category => category.Id == categoryId))
-            return (null, NotFound(new { message = "Khong tim thay danh muc" }));
+            return (null, NotFound(new { message = "Không tìm thấy danh mục" }));
 
         var supplier = await _supplierClient.GetByIdAsync(supplierId);
         return supplier is null
-            ? (null, NotFound(new { message = "Khong tim thay nha cung cap" }))
+            ? (null, NotFound(new { message = "Không tìm thấy nhà cung cấp" }))
             : (supplier, null);
     }
 
