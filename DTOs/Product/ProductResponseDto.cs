@@ -20,6 +20,8 @@ public class ProductResponseDto
 
     public List<string> ImageUrls { get; set; } = new();
 
+    public List<ProductImageItemDto> ImageItems { get; set; } = new();
+
     public int CategoryId { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;

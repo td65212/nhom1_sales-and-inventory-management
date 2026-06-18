@@ -18,6 +18,8 @@ public class CreateProductDto
 
     public List<string> ImageUrls { get; set; } = new();
 
+    public List<ProductImageItemDto> ImageItems { get; set; } = new();
+
     public int CategoryId { get; set; }
 
     public int SupplierId { get; set; }

@@ -70,7 +70,7 @@ public class ProductController : ControllerBase
             SalePrice = NormalizeSalePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             SellingPrice = GetEffectivePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             ImageUrl = dto.ImageUrl,
-            Images = BuildImages(dto.ImageUrls),
+            Images = BuildImages(dto.ImageItems, dto.ImageUrls),
             CategoryId = dto.CategoryId,
             SupplierId = validationResult.Supplier!.Id,
             Inventory = new Inventory
@@ -116,7 +116,7 @@ public class ProductController : ControllerBase
         product.SalePrice = NormalizeSalePrice(product.OriginalPrice, dto.SalePrice);
         product.SellingPrice = GetEffectivePrice(product.OriginalPrice, product.SalePrice);
         product.ImageUrl = dto.ImageUrl;
-        ReplaceImages(product, dto.ImageUrls);
+        ReplaceImages(product, dto.ImageItems, dto.ImageUrls);
         product.CategoryId = dto.CategoryId;
         product.SupplierId = validationResult.Supplier!.Id;
         product.Inventory.Quantity = dto.Quantity;
@@ -205,6 +205,15 @@ public class ProductController : ControllerBase
                 .ThenBy(image => image.Id)
                 .Select(image => image.ImageUrl)
                 .ToList(),
+            ImageItems = product.Images
+                .OrderBy(image => image.SortOrder)
+                .ThenBy(image => image.Id)
+                .Select(image => new ProductImageItemDto
+                {
+                    ImageUrl = image.ImageUrl,
+                    Version = image.Version
+                })
+                .ToList(),
             CategoryId = product.CategoryId,
             CategoryName = product.Category.Name,
             SupplierId = product.SupplierId,
@@ -226,32 +235,49 @@ public class ProductController : ControllerBase
         return string.IsNullOrWhiteSpace(description) ? null : description.Trim();
     }
 
-    private static List<ProductImage> BuildImages(IEnumerable<string>? imageUrls)
+    private static List<ProductImage> BuildImages(
+        IEnumerable<ProductImageItemDto>? imageItems,
+        IEnumerable<string>? imageUrls)
     {
-        return NormalizeImageUrls(imageUrls)
+        return NormalizeImageItems(imageItems, imageUrls)
             .Select((url, index) => new ProductImage
             {
-                ImageUrl = url,
+                ImageUrl = url.ImageUrl,
+                Version = url.Version,
                 SortOrder = index
             })
             .ToList();
     }
 
-    private static void ReplaceImages(Product product, IEnumerable<string>? imageUrls)
+    private static void ReplaceImages(
+        Product product,
+        IEnumerable<ProductImageItemDto>? imageItems,
+        IEnumerable<string>? imageUrls)
     {
         product.Images.Clear();
-        foreach (var image in BuildImages(imageUrls))
+        foreach (var image in BuildImages(imageItems, imageUrls))
             product.Images.Add(image);
     }
 
-    private static List<string> NormalizeImageUrls(IEnumerable<string>? imageUrls)
+    private static List<ProductImageItemDto> NormalizeImageItems(
+        IEnumerable<ProductImageItemDto>? imageItems,
+        IEnumerable<string>? imageUrls)
     {
-        return imageUrls?
-            .Select(url => url.Trim())
-            .Where(url => !string.IsNullOrWhiteSpace(url))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var source = imageItems?.Any() == true
+            ? imageItems
+            : imageUrls?.Select(url => new ProductImageItemDto { ImageUrl = url });
+
+        return source?
+            .Select(item => new ProductImageItemDto
+            {
+                ImageUrl = item.ImageUrl.Trim(),
+                Version = string.IsNullOrWhiteSpace(item.Version) ? null : item.Version.Trim()
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.ImageUrl))
+            .GroupBy(item => item.ImageUrl, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
             .ToList()
-            ?? new List<string>();
+            ?? new List<ProductImageItemDto>();
     }
 
     private static decimal GetEffectivePrice(decimal originalPrice, decimal? salePrice)

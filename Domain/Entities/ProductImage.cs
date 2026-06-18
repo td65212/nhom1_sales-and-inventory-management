@@ -10,5 +10,7 @@ public class ProductImage
 
     public string ImageUrl { get; set; } = string.Empty;
 
+    public string? Version { get; set; }
+
     public int SortOrder { get; set; }
 }

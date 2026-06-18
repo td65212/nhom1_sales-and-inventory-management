@@ -57,6 +57,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ProductImage>()
             .HasIndex(image => new { image.ProductId, image.SortOrder });
 
+        modelBuilder.Entity<ProductImage>()
+            .Property(image => image.Version)
+            .HasMaxLength(80);
+
         modelBuilder.Entity<Product>()
             .Property(product => product.ImportPrice)
             .HasPrecision(18, 2);
