@@ -63,6 +63,7 @@ public class ProductController : ControllerBase
         var product = new Product
         {
             Name = dto.Name.Trim(),
+            Description = NormalizeDescription(dto.Description),
             ImportPrice = dto.ImportPrice,
             OriginalPrice = dto.OriginalPrice ?? dto.SellingPrice,
             SalePrice = NormalizeSalePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
@@ -106,6 +107,7 @@ public class ProductController : ControllerBase
 
         var previousQuantity = product.Inventory.Quantity;
         product.Name = dto.Name.Trim();
+        product.Description = NormalizeDescription(dto.Description);
         product.ImportPrice = dto.ImportPrice;
         product.OriginalPrice = dto.OriginalPrice ?? dto.SellingPrice;
         product.SalePrice = NormalizeSalePrice(product.OriginalPrice, dto.SalePrice);
@@ -187,6 +189,7 @@ public class ProductController : ControllerBase
         {
             Id = product.Id,
             Name = product.Name,
+            Description = product.Description,
             ImportPrice = product.ImportPrice,
             SellingPrice = GetEffectivePrice(originalPrice, salePrice),
             OriginalPrice = originalPrice,
@@ -206,6 +209,11 @@ public class ProductController : ControllerBase
         return salePrice.HasValue && salePrice.Value > 0 && salePrice.Value < originalPrice
             ? salePrice.Value
             : null;
+    }
+
+    private static string? NormalizeDescription(string? description)
+    {
+        return string.IsNullOrWhiteSpace(description) ? null : description.Trim();
     }
 
     private static decimal GetEffectivePrice(decimal originalPrice, decimal? salePrice)
