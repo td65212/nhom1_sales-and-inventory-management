@@ -70,7 +70,7 @@ public class ProductController : ControllerBase
             SalePrice = NormalizeSalePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             SellingPrice = GetEffectivePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             ImageUrl = dto.ImageUrl,
-            Images = BuildImages(dto.ImageItems, dto.ImageUrls),
+            Images = BuildImages(dto.ImageItems, dto.ImageUrls, dto.ProductVersion),
             CategoryId = dto.CategoryId,
             SupplierId = validationResult.Supplier!.Id,
             Inventory = new Inventory
@@ -116,7 +116,7 @@ public class ProductController : ControllerBase
         product.SalePrice = NormalizeSalePrice(product.OriginalPrice, dto.SalePrice);
         product.SellingPrice = GetEffectivePrice(product.OriginalPrice, product.SalePrice);
         product.ImageUrl = dto.ImageUrl;
-        ReplaceImages(product, dto.ImageItems, dto.ImageUrls);
+        ReplaceImages(product, dto.ImageItems, dto.ImageUrls, dto.ProductVersion);
         product.CategoryId = dto.CategoryId;
         product.SupplierId = validationResult.Supplier!.Id;
         product.Inventory.Quantity = dto.Quantity;
@@ -200,6 +200,7 @@ public class ProductController : ControllerBase
             OriginalPrice = originalPrice,
             SalePrice = salePrice,
             ImageUrl = product.ImageUrl,
+            ProductVersion = GetProductVersion(product),
             ImageUrls = product.Images
                 .OrderBy(image => image.SortOrder)
                 .ThenBy(image => image.Id)
@@ -237,13 +238,17 @@ public class ProductController : ControllerBase
 
     private static List<ProductImage> BuildImages(
         IEnumerable<ProductImageItemDto>? imageItems,
-        IEnumerable<string>? imageUrls)
+        IEnumerable<string>? imageUrls,
+        string? productVersion)
     {
+        var version = NormalizeProductVersion(productVersion)
+            ?? NormalizeImageItems(imageItems, imageUrls).FirstOrDefault(item => !string.IsNullOrWhiteSpace(item.Version))?.Version;
+
         return NormalizeImageItems(imageItems, imageUrls)
             .Select((url, index) => new ProductImage
             {
                 ImageUrl = url.ImageUrl,
-                Version = url.Version,
+                Version = version,
                 SortOrder = index
             })
             .ToList();
@@ -252,11 +257,26 @@ public class ProductController : ControllerBase
     private static void ReplaceImages(
         Product product,
         IEnumerable<ProductImageItemDto>? imageItems,
-        IEnumerable<string>? imageUrls)
+        IEnumerable<string>? imageUrls,
+        string? productVersion)
     {
         product.Images.Clear();
-        foreach (var image in BuildImages(imageItems, imageUrls))
+        foreach (var image in BuildImages(imageItems, imageUrls, productVersion))
             product.Images.Add(image);
+    }
+
+    private static string? GetProductVersion(Product product)
+    {
+        return product.Images
+            .OrderBy(image => image.SortOrder)
+            .ThenBy(image => image.Id)
+            .Select(image => NormalizeProductVersion(image.Version))
+            .FirstOrDefault(version => !string.IsNullOrWhiteSpace(version));
+    }
+
+    private static string? NormalizeProductVersion(string? version)
+    {
+        return string.IsNullOrWhiteSpace(version) ? null : version.Trim();
     }
 
     private static List<ProductImageItemDto> NormalizeImageItems(
