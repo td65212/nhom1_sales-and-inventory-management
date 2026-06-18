@@ -18,6 +18,8 @@ public class ProductResponseDto
 
     public string? ImageUrl { get; set; }
 
+    public List<string> ImageUrls { get; set; } = new();
+
     public int CategoryId { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;

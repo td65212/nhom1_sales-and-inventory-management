@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Product> Products { get; set; }
 
+    public DbSet<ProductImage> ProductImages { get; set; }
+
     public DbSet<Category> Categories { get; set; }
 
     public DbSet<Inventory> Inventories { get; set; }
@@ -45,6 +47,15 @@ public class ApplicationDbContext : DbContext
             .HasOne(p => p.Inventory)
             .WithOne(i => i.Product)
             .HasForeignKey<Inventory>(i => i.ProductId);
+
+        modelBuilder.Entity<Product>()
+            .HasMany(product => product.Images)
+            .WithOne(image => image.Product)
+            .HasForeignKey(image => image.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductImage>()
+            .HasIndex(image => new { image.ProductId, image.SortOrder });
 
         modelBuilder.Entity<Product>()
             .Property(product => product.ImportPrice)

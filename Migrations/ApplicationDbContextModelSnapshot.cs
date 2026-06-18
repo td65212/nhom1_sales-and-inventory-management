@@ -110,6 +110,31 @@ namespace nhom1_salesandinventorymanagement.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("nhom1_sales_and_inventory_management.Domain.Entities.ProductImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "SortOrder");
+
+                    b.ToTable("ProductImages");
+                });
+
             modelBuilder.Entity("nhom1_sales_and_inventory_management.Domain.Entities.StockEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -262,6 +287,17 @@ namespace nhom1_salesandinventorymanagement.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("nhom1_sales_and_inventory_management.Domain.Entities.ProductImage", b =>
+                {
+                    b.HasOne("nhom1_sales_and_inventory_management.Domain.Entities.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("nhom1_sales_and_inventory_management.Domain.Entities.StockReceiptItem", b =>
                 {
                     b.HasOne("nhom1_sales_and_inventory_management.Domain.Entities.Product", "Product")
@@ -290,6 +326,8 @@ namespace nhom1_salesandinventorymanagement.Migrations
 
             modelBuilder.Entity("nhom1_sales_and_inventory_management.Domain.Entities.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Inventory")
                         .IsRequired();
 

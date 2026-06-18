@@ -16,6 +16,8 @@ public class CreateProductDto
 
     public string? ImageUrl { get; set; }
 
+    public List<string> ImageUrls { get; set; } = new();
+
     public int CategoryId { get; set; }
 
     public int SupplierId { get; set; }

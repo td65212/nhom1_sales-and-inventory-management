@@ -30,6 +30,7 @@ public class ProductController : ControllerBase
             .AsNoTracking()
             .Include(product => product.Category)
             .Include(product => product.Inventory)
+            .Include(product => product.Images)
             .OrderBy(product => product.Id)
             .ToListAsync();
         var suppliers = await _supplierClient.GetByIdsAsync(
@@ -69,6 +70,7 @@ public class ProductController : ControllerBase
             SalePrice = NormalizeSalePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             SellingPrice = GetEffectivePrice(dto.OriginalPrice ?? dto.SellingPrice, dto.SalePrice),
             ImageUrl = dto.ImageUrl,
+            Images = BuildImages(dto.ImageUrls),
             CategoryId = dto.CategoryId,
             SupplierId = validationResult.Supplier!.Id,
             Inventory = new Inventory
@@ -96,6 +98,7 @@ public class ProductController : ControllerBase
 
         var product = await _context.Products
             .Include(value => value.Inventory)
+            .Include(value => value.Images)
             .FirstOrDefaultAsync(value => value.Id == id);
         if (product is null)
             return NotFound();
@@ -113,6 +116,7 @@ public class ProductController : ControllerBase
         product.SalePrice = NormalizeSalePrice(product.OriginalPrice, dto.SalePrice);
         product.SellingPrice = GetEffectivePrice(product.OriginalPrice, product.SalePrice);
         product.ImageUrl = dto.ImageUrl;
+        ReplaceImages(product, dto.ImageUrls);
         product.CategoryId = dto.CategoryId;
         product.SupplierId = validationResult.Supplier!.Id;
         product.Inventory.Quantity = dto.Quantity;
@@ -163,6 +167,7 @@ public class ProductController : ControllerBase
             .AsNoTracking()
             .Include(product => product.Category)
             .Include(product => product.Inventory)
+            .Include(product => product.Images)
             .FirstOrDefaultAsync(product => product.Id == id);
     }
 
@@ -195,6 +200,11 @@ public class ProductController : ControllerBase
             OriginalPrice = originalPrice,
             SalePrice = salePrice,
             ImageUrl = product.ImageUrl,
+            ImageUrls = product.Images
+                .OrderBy(image => image.SortOrder)
+                .ThenBy(image => image.Id)
+                .Select(image => image.ImageUrl)
+                .ToList(),
             CategoryId = product.CategoryId,
             CategoryName = product.Category.Name,
             SupplierId = product.SupplierId,
@@ -214,6 +224,34 @@ public class ProductController : ControllerBase
     private static string? NormalizeDescription(string? description)
     {
         return string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+    }
+
+    private static List<ProductImage> BuildImages(IEnumerable<string>? imageUrls)
+    {
+        return NormalizeImageUrls(imageUrls)
+            .Select((url, index) => new ProductImage
+            {
+                ImageUrl = url,
+                SortOrder = index
+            })
+            .ToList();
+    }
+
+    private static void ReplaceImages(Product product, IEnumerable<string>? imageUrls)
+    {
+        product.Images.Clear();
+        foreach (var image in BuildImages(imageUrls))
+            product.Images.Add(image);
+    }
+
+    private static List<string> NormalizeImageUrls(IEnumerable<string>? imageUrls)
+    {
+        return imageUrls?
+            .Select(url => url.Trim())
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            ?? new List<string>();
     }
 
     private static decimal GetEffectivePrice(decimal originalPrice, decimal? salePrice)
