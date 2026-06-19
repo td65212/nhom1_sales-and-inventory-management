@@ -126,6 +126,9 @@ public class InventoryController : ControllerBase
         if (dto.ProductId <= 0 || dto.Quantity <= 0)
             return BadRequest(new { message = "ProductId và số lượng phải lớn hơn 0" });
 
+        if (dto.ProductVariantId.HasValue || dto.ProductVariantColorId.HasValue)
+            return await AdjustVariantStockAsync(dto, reserve: true);
+
         var duplicate = await GetIdempotentResultAsync(dto, "order.reserved");
         if (duplicate is not null)
             return Ok(duplicate);
@@ -175,6 +178,9 @@ public class InventoryController : ControllerBase
 
         if (dto.ProductId <= 0 || dto.Quantity <= 0)
             return BadRequest(new { message = "ProductId và số lượng phải lớn hơn 0" });
+
+        if (dto.ProductVariantId.HasValue || dto.ProductVariantColorId.HasValue)
+            return await AdjustVariantStockAsync(dto, reserve: false);
 
         var duplicate = await GetIdempotentResultAsync(dto, "order.released");
         if (duplicate is not null)
@@ -240,6 +246,68 @@ public class InventoryController : ControllerBase
             .SingleAsync();
     }
 
+    private async Task<IActionResult> AdjustVariantStockAsync(AdjustStockDto dto, bool reserve)
+    {
+        if (!dto.ProductVariantId.HasValue || !dto.ProductVariantColorId.HasValue)
+            return BadRequest(new { message = "Phải chọn đầy đủ phiên bản và màu sắc" });
+
+        var source = reserve ? "order.variant.reserved" : "order.variant.released";
+        var duplicate = await GetIdempotentResultAsync(dto, source);
+        if (duplicate is not null)
+            return Ok(duplicate);
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var variant = await _context.ProductVariants
+            .Include(value => value.Product).ThenInclude(product => product.Category)
+            .Include(value => value.Colors)
+            .FirstOrDefaultAsync(value => value.Id == dto.ProductVariantId && value.ProductId == dto.ProductId);
+        var color = variant?.Colors.FirstOrDefault(value => value.Id == dto.ProductVariantColorId);
+        if (variant is null || color is null)
+            return NotFound(new { message = "Không tìm thấy phiên bản hoặc màu sắc" });
+        if (reserve && (!variant.IsActive || !color.IsActive))
+            return Conflict(new { message = "Phiên bản hoặc màu sắc đã ngừng bán" });
+        if (reserve && (variant.Quantity < dto.Quantity || color.Quantity < dto.Quantity))
+            return Conflict(new { message = "Không đủ tồn kho cho phiên bản/màu đã chọn" });
+
+        var previousQuantity = variant.Quantity;
+        variant.Quantity += reserve ? -dto.Quantity : dto.Quantity;
+        color.Quantity += reserve ? -dto.Quantity : dto.Quantity;
+        _context.StockEvents.Add(new StockEvent
+        {
+            ProductId = variant.ProductId,
+            ProductName = variant.Product.Name,
+            PreviousQuantity = previousQuantity,
+            CurrentQuantity = variant.Quantity,
+            QuantityChange = variant.Quantity - previousQuantity,
+            Source = source,
+            ReferenceId = dto.ReferenceId
+        });
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Ok(new AdjustStockResponseDto
+        {
+            Product = MapVariantStock(variant, color),
+            PreviousQuantity = previousQuantity,
+            CurrentQuantity = variant.Quantity
+        });
+    }
+
+    private static ProductStockDto MapVariantStock(ProductVariant variant, ProductVariantColor color) => new()
+    {
+        Id = variant.ProductId,
+        Name = variant.Product.Name,
+        SellingPrice = variant.SalePrice is > 0 && variant.SalePrice < variant.OriginalPrice
+            ? variant.SalePrice.Value : variant.OriginalPrice,
+        CategoryName = variant.Product.Category.Name,
+        Quantity = Math.Min(variant.Quantity, color.Quantity),
+        ReserveStock = variant.ReserveStock,
+        ProductVariantId = variant.Id,
+        ProductVariantColorId = color.Id,
+        VariantName = variant.Name,
+        ColorName = color.Name,
+        Sku = variant.Sku
+    };
+
     private async Task<AdjustStockResponseDto?> GetIdempotentResultAsync(
         AdjustStockDto dto,
         string source)
@@ -255,6 +323,21 @@ public class InventoryController : ControllerBase
                 && value.ReferenceId == dto.ReferenceId);
         if (stockEvent is null)
             return null;
+
+        if (dto.ProductVariantId.HasValue && dto.ProductVariantColorId.HasValue)
+        {
+            var variant = await _context.ProductVariants.AsNoTracking()
+                .Include(value => value.Product).ThenInclude(product => product.Category)
+                .Include(value => value.Colors)
+                .SingleAsync(value => value.Id == dto.ProductVariantId);
+            var color = variant.Colors.Single(value => value.Id == dto.ProductVariantColorId);
+            return new AdjustStockResponseDto
+            {
+                Product = MapVariantStock(variant, color),
+                PreviousQuantity = stockEvent.PreviousQuantity,
+                CurrentQuantity = stockEvent.CurrentQuantity
+            };
+        }
 
         return new AdjustStockResponseDto
         {

@@ -15,6 +15,10 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<ProductImage> ProductImages { get; set; }
 
+    public DbSet<ProductVariant> ProductVariants { get; set; }
+
+    public DbSet<ProductVariantColor> ProductVariantColors { get; set; }
+
     public DbSet<Category> Categories { get; set; }
 
     public DbSet<Inventory> Inventories { get; set; }
@@ -49,16 +53,52 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey<Inventory>(i => i.ProductId);
 
         modelBuilder.Entity<Product>()
-            .HasMany(product => product.Images)
-            .WithOne(image => image.Product)
-            .HasForeignKey(image => image.ProductId)
+            .HasMany(product => product.Variants)
+            .WithOne(variant => variant.Product)
+            .HasForeignKey(variant => variant.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductVariant>()
+            .HasIndex(variant => variant.Sku)
+            .IsUnique();
+
+        modelBuilder.Entity<ProductVariant>()
+            .Property(variant => variant.OriginalPrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<ProductVariant>()
+            .Property(variant => variant.SalePrice)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<ProductVariant>()
+            .HasMany(variant => variant.Colors)
+            .WithOne(color => color.ProductVariant)
+            .HasForeignKey(color => color.ProductVariantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductVariantColor>()
+            .HasIndex(color => new { color.ProductVariantId, color.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<ProductVariantColor>()
+            .HasMany(color => color.Images)
+            .WithOne(image => image.ProductVariantColor)
+            .HasForeignKey(image => image.ProductVariantColorId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ProductImage>()
-            .HasIndex(image => new { image.ProductId, image.SortOrder });
+            .HasIndex(image => new { image.ProductVariantColorId, image.SortOrder });
 
-        modelBuilder.Entity<ProductImage>()
-            .Property(image => image.Version)
+        modelBuilder.Entity<ProductVariant>()
+            .Property(variant => variant.Name)
+            .HasMaxLength(80);
+
+        modelBuilder.Entity<ProductVariant>()
+            .Property(variant => variant.Sku)
+            .HasMaxLength(120);
+
+        modelBuilder.Entity<ProductVariantColor>()
+            .Property(color => color.Name)
             .HasMaxLength(80);
 
         modelBuilder.Entity<Product>()

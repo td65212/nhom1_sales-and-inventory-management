@@ -26,8 +26,8 @@ public class Product
 
     public Inventory Inventory { get; set; } = null!;
 
-    public ICollection<ProductImage> Images { get; set; }
-        = new List<ProductImage>();
+    public ICollection<ProductVariant> Variants { get; set; }
+        = new List<ProductVariant>();
 
     public ICollection<StockReceiptItem> StockReceiptItems { get; set; }
         = new List<StockReceiptItem>();

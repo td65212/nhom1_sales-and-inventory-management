@@ -18,11 +18,11 @@ public class ProductResponseDto
 
     public string? ImageUrl { get; set; }
 
-    public string? ProductVersion { get; set; }
-
     public List<string> ImageUrls { get; set; } = new();
 
     public List<ProductImageItemDto> ImageItems { get; set; } = new();
+
+    public List<ProductVariantDto> Variants { get; set; } = new();
 
     public int CategoryId { get; set; }
 

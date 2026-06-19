@@ -4,13 +4,11 @@ public class ProductImage
 {
     public int Id { get; set; }
 
-    public int ProductId { get; set; }
+    public int ProductVariantColorId { get; set; }
 
-    public Product Product { get; set; } = null!;
+    public ProductVariantColor ProductVariantColor { get; set; } = null!;
 
     public string ImageUrl { get; set; } = string.Empty;
-
-    public string? Version { get; set; }
 
     public int SortOrder { get; set; }
 }
